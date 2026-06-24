@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mira — 2025 Tax Filing Assistant</title>
+<style>
+  :root { --bg:#f4f1ea; --ink:#2b2b2b; --accent:#b5612f; --panel:#fffdf8; --line:#e3ddcf; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.5 -apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:baseline; }
+  header h1 { font-size:18px; margin:0; }
+  header span { color:#7a7264; font-size:13px; }
+  main { display:grid; grid-template-columns:1fr 360px; gap:0; height:calc(100vh - 53px); }
+  #chatwrap { display:flex; flex-direction:column; min-width:0; }
+  #log { flex:1; overflow-y:auto; padding:20px; }
+  .msg { max-width:76%; margin:8px 0; padding:10px 14px; border-radius:14px; white-space:pre-wrap; }
+  .user { background:var(--accent); color:#fff; margin-left:auto; border-bottom-right-radius:4px; }
+  .bot { background:var(--panel); border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .typing { color:#9a9182; font-style:italic; }
+  form { display:flex; gap:8px; padding:14px 20px; border-top:1px solid var(--line); }
+  textarea { flex:1; resize:none; padding:10px; border:1px solid var(--line); border-radius:10px; font:inherit; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:10px; padding:0 18px; font:inherit; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  #side { border-left:1px solid var(--line); background:var(--panel); padding:16px; overflow-y:auto; }
+  #side h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:#7a7264; margin:0 0 8px; }
+  .budget { font-size:13px; margin-bottom:12px; }
+  .ev { font:12px/1.4 ui-monospace,Menlo,monospace; border-top:1px dashed var(--line); padding:7px 0; }
+  .ev b { color:var(--accent); }
+  .ev.guardrail b { color:#1f7a4d; }
+  .ev pre { margin:4px 0 0; white-space:pre-wrap; word-break:break-word; color:#5a5346; }
+  #dl { display:none; margin:8px 20px 0; }
+  #dl a { display:inline-block; background:#1f7a4d; color:#fff; padding:10px 16px; border-radius:10px; text-decoration:none; }
+  .bar { padding:0 20px 8px; }
+</style>
+</head>
+<body>
+<header><h1>Mira</h1><span>2025 Form 1040 assistant · educational demo, not tax advice</span></header>
+<main>
+  <section id="chatwrap">
+    <div id="log"></div>
+    <div id="dl"><a id="dllink" href="#">⬇ Download your completed Form 1040</a></div>
+    <div class="bar"><button class="ghost" id="sample" type="button">Paste a sample W-2</button></div>
+    <form id="f">
+      <textarea id="m" rows="2" placeholder="Say hello, or paste your W-2…"></textarea>
+      <button type="submit">Send</button>
+    </form>
+  </section>
+  <aside id="side">
+    <h2>Agent activity</h2>
+    <div class="budget" id="budget">Questions used: 0 / 5</div>
+    <div id="trace"></div>
+  </aside>
+</main>
+<script>
+const SAMPLE = `Here's my W-2:
+Employee: Jordan A. Rivera   SSN: 123-45-6789
+Employer: Brightway Logistics LLC
+Box 1 (Wages): 41,850.00
+Box 2 (Federal income tax withheld): 4,120.00`;
+let sid = null;
+const log = document.getElementById('log');
+const trace = document.getElementById('trace');
+
+function add(text, who){ const d=document.createElement('div'); d.className='msg '+who; d.textContent=text; log.appendChild(d); log.scrollTop=log.scrollHeight; return d; }
+
+function renderTrace(st){
+  document.getElementById('budget').textContent = `Questions used: ${st.questions_asked} / ${st.question_budget}`;
+  trace.innerHTML='';
+  for(const e of st.trace){
+    const d=document.createElement('div'); d.className='ev '+(e.kind==='guardrail'?'guardrail':'');
+    let body='';
+    if(e.kind==='tool_call') body = e.tool + (e.is_error?' ⚠':'') + '\n'+JSON.stringify(e.result);
+    else if(e.kind==='guardrail') body = e.rule+': '+e.used+'/'+e.limit;
+    else if(e.kind==='user_message') body = e.text.slice(0,80);
+    else if(e.kind==='model_turn') body = e.stop_reason;
+    d.innerHTML = '<b>'+e.kind+'</b>'+(body?'<pre>'+body.replace(/</g,'&lt;')+'</pre>':'');
+    trace.appendChild(d);
+  }
+  if(st.form_ready){ document.getElementById('dl').style.display='block';
+    document.getElementById('dllink').href = st.download_url; }
+}
+
+async function send(text){
+  add(text,'user');
+  const t=add('Mira is thinking…','bot'); t.classList.add('typing');
+  const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({session_id:sid,message:text})});
+  const st=await r.json(); sid=st.session_id;
+  t.remove(); add(st.reply||'…','bot'); renderTrace(st);
+}
+
+document.getElementById('f').addEventListener('submit',e=>{
+  e.preventDefault(); const m=document.getElementById('m'); const v=m.value.trim();
+  if(v){ m.value=''; send(v); }
+});
+document.getElementById('sample').addEventListener('click',()=>{ document.getElementById('m').value=SAMPLE; });
+add("Hi, I'm Mira 👋 I'll help you put together your 2025 federal tax return. Whenever you're ready, paste your W-2 (or tap the button below) and we'll take it from there.",'bot');
+</script>
+</body>
+</html>
