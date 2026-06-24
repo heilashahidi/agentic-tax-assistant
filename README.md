@@ -6,7 +6,9 @@ pillars (chat loop, tools, guardrails, observation). See [`DECISIONS.md`](DECISI
 
 ## Live
 
-Deployed on Render: **<add your URL here after deploy>**
+Deployed on Render: **https://agentic-tax-assistant.onrender.com/**
+
+> Free tier: the service sleeps after ~15 min idle and takes ~50s to wake on the first request.
 
 ## Run locally (one command)
 
