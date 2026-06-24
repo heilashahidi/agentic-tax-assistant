@@ -15,7 +15,7 @@ import anthropic
 from . import form, tax
 from .session import Session
 
-MODEL = "claude-opus-4-8"
+MODEL = "claude-sonnet-4-6"
 QUESTION_BUDGET = 5
 MAX_TOOL_ROUNDS = 8
 

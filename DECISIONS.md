@@ -5,9 +5,9 @@ Key choices for the open items, and why.
 **Language / framework.** Python + FastAPI. Smallest path from input to outcome, deploys to Render
 in one file, and the tax math + PDF work live naturally in Python (`pypdf`).
 
-**Model / provider.** Anthropic Claude (`claude-opus-4-8`). The conversation quality bar is explicit
-in the brief, and tool-use + warm dialogue are exactly this model's strengths. No extended thinking —
-turns stay snappy for a live judge.
+**Model / provider.** Anthropic Claude (`claude-sonnet-4-6`). Chosen for the best speed/quality balance:
+fast enough for snappy live turns while keeping the warm dialogue and reliable tool use the brief
+judges on. No extended thinking — turns stay snappy for a live judge.
 
 **The four pillars — enforced in code, not just prompted (`app/agent.py`).**
 - *Chat loop:* `run_turn()` drives a stateful loop over `Session.messages`; state (history, recorded
